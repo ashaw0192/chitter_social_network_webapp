@@ -14,3 +14,4 @@ describe Application do
   #  reset_albums_table
   #  reset_artists_table
   #end
+end
