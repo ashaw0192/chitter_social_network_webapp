@@ -22,11 +22,31 @@ class UserRepository
 
   # The register method vets a new users data and, if it checks out, adds them to the users database
   def register(user)
-    p user.email
-    return false if (user.name || user.email || user.username || user.password) == nil
-    sql = "INSERT INTO users (name, email, username, password) VALUES ($1, $2, $3, $4);"
-    params = [user.name, user.email, user.username, user.password]
-    DatabaseConnection.exec_params(sql, params)
+    # Checking for empty fields
+    raise "Field required" if user.name == nil || user.email == nil || user.username == nil || user.password == nil
+    # Checking for duplicates
+    sql1 = "SELECT * FROM users WHERE email = $1 OR username = $2;"
+    params1 = [user.email, user.username]
+    duplicate = DatabaseConnection.exec_params(sql1, params1)
+    raise "Email or username already exists" if duplicate.ntuples > 0
+    # Inserting if previous checks pass
+    sql2 = "INSERT INTO users (name, email, username, password) VALUES ($1, $2, $3, crypt($4, gen_salt('bf')));"
+    params2 = [user.name, user.email, user.username, user.password]
+    DatabaseConnection.exec_params(sql2, params2)
     return true
+  end
+
+  # Login fiorst checks for a valid email, and then retrives encrtypted password and checks against it, 
+  # returning the account owner's ID
+  def login(email, password)
+    sql = "SELECT password FROM users WHERE email = $1;"
+    params = [email]
+    password_to_check = DatabaseConnection.exec_params(sql, params)
+    raise "No such email" if password_to_check.ntuples == 0
+    sql1 = "SELECT id FROM users WHERE email = $1 AND password =crypt($2, $3);"
+    params1 = [email, password, password_to_check[0]['password']]
+    result = DatabaseConnection.exec_params(sql1, params1)
+    raise "Incorrect password" if result.ntuples == 0
+    result[0]['id'].to_i
   end
 end

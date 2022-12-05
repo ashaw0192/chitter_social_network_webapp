@@ -46,7 +46,7 @@ RSpec.describe UserRepository do
   end
 
   context "when register is called but not all fields are complete" do
-    it "returns false and doesn't insert to users table" do
+    it "fails" do
       user1 = User.new
       user1.name = 'User Four'
       user1.username = 'four4'
@@ -56,10 +56,71 @@ RSpec.describe UserRepository do
       user2.email = 'four@four.com'
       user2.password = 'password4'
       repo = UserRepository.new
-      expect(repo.register(user1)).to eq false
-      expect(repo.register(user2)).to eq false
-      users = repo.all
-      expect(users.length).to eq 3
+      expect{ repo.register(user1) }.to raise_error "Field required"
+      expect{ repo.register(user2) }.to raise_error "Field required"
+    end
+  end
+
+  context "when register is called but username already exists" do
+    it "fails" do
+      user = User.new
+      user.name = 'User One'
+      user.username = 'one1'
+      user.email = 'two@one.com'
+      user.password = 'password1'
+      repo = UserRepository.new
+      expect{ repo.register(user) }.to raise_error "Email or username already exists"
+    end
+  end
+
+  context "when register is called but email already exists" do
+    it "fails" do
+      user1 = User.new
+      user1.name = 'User One'
+      user1.username = 'one2'
+      user1.email = 'one@one.com'
+      user1.password = 'password1'
+      repo = UserRepository.new
+      expect{ repo.register(user1) }.to raise_error "Email or username already exists"
+    end
+  end
+
+  context "when register is called and both email and username already exist" do
+    it "fails" do
+      user2 = User.new
+      user2.name = 'User One'
+      user2.username = 'one1'
+      user2.email = 'one@one.com'
+      user2.password = 'password1'
+      repo = UserRepository.new
+      expect{ repo.register(user2) }.to raise_error "Email or username already exists"
+    end
+  end
+
+  context "when register is called and username and email are already taken by 2 seperate users" do
+    it "fails" do
+      user3 = User.new
+      user3.name = 'User One'
+      user3.username = 'one1'
+      user3.email = 'two@two.com'
+      user3.password = 'password1'
+      repo = UserRepository.new
+      expect{ repo.register(user3) }.to raise_error "Email or username already exists"
+    end
+  end
+
+  context "when login is called and details correct" do
+    it "returns the users id" do
+      repo = UserRepository.new
+      expect(repo.login('one@one.com', 'password1')).to eq 1
+      expect(repo.login('two@two.com', 'password2')).to eq 2
+    end
+  end
+
+  context "when login is called and email doesn't exist" do
+    it "raises error" do
+      repo = UserRepository.new
+      expect{ repo.login('one@two.com', 'password1') }.to raise_error "No such email"
     end
   end
 end
